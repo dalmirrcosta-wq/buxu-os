@@ -31,7 +31,6 @@ lb config \
   --architectures amd64 \
   --archive-areas "main contrib non-free non-free-firmware" \
   --binary-images iso-hybrid \
-  --debian-installer none \
   --memtest none \
   --iso-application "BUXU OS" \
   --iso-publisher "BUXU OS" \
@@ -44,14 +43,15 @@ cp config/archives/security.list.chroot config/archives/security.list.binary
 
 mkdir -p config/package-lists config/hooks/normal \
          config/includes.chroot/etc/X11/xorg.conf.d \
-         config/includes.chroot/etc/sddm.conf.d \
+         config/includes.chroot/etc/lightdm/lightdm.conf.d \
          config/includes.chroot/etc/default
 
 # ---------- Pacotes ----------
 cat > config/package-lists/buxu.list.chroot <<'EOF'
 # Base gráfica leve
 xorg
-sddm
+lightdm
+lightdm-gtk-greeter
 lxqt-core
 lxqt-policykit
 lxqt-archiver
@@ -131,10 +131,11 @@ EndSection
 EOF
 
 # ---------- Login automático ----------
-cat > config/includes.chroot/etc/sddm.conf.d/autologin.conf <<'EOF'
-[Autologin]
-User=buxu
-Session=lxqt.desktop
+cat > config/includes.chroot/etc/lightdm/lightdm.conf.d/50-buxu.conf <<'EOF'
+[Seat:*]
+autologin-user=buxu
+autologin-user-timeout=0
+autologin-session=lxqt
 EOF
 
 # ---------- Hook: personalizações feitas dentro do sistema ----------
