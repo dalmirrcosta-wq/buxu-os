@@ -9,7 +9,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 apt-get update
-apt-get install -y live-build debootstrap xorriso squashfs-tools debian-archive-keyring ca-certificates
+apt-get install -y live-build debootstrap xorriso squashfs-tools debian-archive-keyring ca-certificates mtools dosfstools cpio
 
 WORK="${PWD}/buxu-build"
 mkdir -p "$WORK"
