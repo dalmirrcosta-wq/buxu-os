@@ -69,6 +69,17 @@ gnome-software-plugin-flatpak
 flatpak
 packagekit
 
+# Pendrives e discos (montagem automática), monitor de recursos
+udisks2
+gvfs
+gvfs-backends
+qps
+htop
+
+# Relógio ajustado pela internet e memória comprimida (zram)
+chrony
+zram-tools
+
 # Rede (cabo e Wi-Fi)
 network-manager
 network-manager-gnome
@@ -101,12 +112,52 @@ intel-microcode
 
 # Idioma / sistema
 locales
+locales-all
 console-setup
 keyboard-configuration
 sudo
 curl
 gnupg
 extrepo
+EOF
+
+# ---------- Relógio: corrige a hora mesmo se estiver muito errada ----------
+mkdir -p config/includes.chroot/etc/chrony/conf.d
+cat > config/includes.chroot/etc/chrony/conf.d/buxu.conf <<'EOF'
+makestep 1 -1
+EOF
+
+# ---------- Memória comprimida (zram) ----------
+cat > config/includes.chroot/etc/default/zramswap <<'EOF'
+ALGO=zstd
+PERCENT=50
+PRIORITY=100
+EOF
+
+# ---------- Touchpads I2C: carregar módulos comuns ----------
+mkdir -p config/includes.chroot/etc/modules-load.d
+cat > config/includes.chroot/etc/modules-load.d/buxu-input.conf <<'EOF'
+i2c_hid_acpi
+hid_multitouch
+EOF
+
+# ---------- Idioma padrão: português do Brasil ----------
+cat > config/includes.chroot/etc/default/locale <<'EOF'
+LANG=pt_BR.UTF-8
+LANGUAGE=pt_BR:pt:en
+LC_MESSAGES=pt_BR.UTF-8
+EOF
+
+# ---------- Loja de programas sem pedir senha (instalar/remover programas) ----------
+mkdir -p config/includes.chroot/etc/polkit-1/rules.d
+cat > config/includes.chroot/etc/polkit-1/rules.d/49-buxu-loja.rules <<'EOF'
+polkit.addRule(function(action, subject) {
+    if ((action.id.indexOf("org.freedesktop.packagekit.") == 0 ||
+         action.id.indexOf("org.freedesktop.Flatpak.") == 0) &&
+        subject.local && subject.active) {
+        return polkit.Result.YES;
+    }
+});
 EOF
 
 # ---------- Teclado ABNT2 ----------
@@ -168,6 +219,10 @@ apt-get install -y librewolf || echo "AVISO: LibreWolf não instalou"
 
 # Flathub na loja
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+
+# Relógio pela internet e zram ligados na inicialização
+systemctl enable chrony || true
+systemctl enable zramswap || true
 
 # Limpeza
 apt-get clean
