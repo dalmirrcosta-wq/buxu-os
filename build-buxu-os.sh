@@ -23,9 +23,8 @@ lb config \
   --linux-packages "linux-image" \
   --mirror-bootstrap "http://deb.debian.org/debian/" \
   --mirror-chroot "http://deb.debian.org/debian/" \
-  --mirror-chroot-security "http://deb.debian.org/debian-security/" \
   --mirror-binary "http://deb.debian.org/debian/" \
-  --mirror-binary-security "http://deb.debian.org/debian-security/" \
+  --security false \
   --architectures amd64 \
   --archive-areas "main contrib non-free non-free-firmware" \
   --binary-images iso-hybrid \
@@ -35,6 +34,10 @@ lb config \
   --iso-publisher "BUXU OS" \
   --iso-volume "BUXU_OS" \
   --bootappend-live "boot=live components quiet locales=pt_BR.UTF-8 keyboard-layouts=br timezone=America/Fortaleza hostname=buxu username=buxu"
+
+mkdir -p config/archives
+echo "deb http://deb.debian.org/debian-security trixie-security main contrib non-free non-free-firmware" > config/archives/security.list.chroot
+cp config/archives/security.list.chroot config/archives/security.list.binary
 
 mkdir -p config/package-lists config/hooks/normal \
          config/includes.chroot/etc/X11/xorg.conf.d \
