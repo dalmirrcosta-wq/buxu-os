@@ -7,8 +7,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Liberar espaço
         run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android
-      - name: Construir ISO
-        run: sudo bash build-buxu-os.sh
+      - name: Construir ISO dentro do Debian
+        run: |
+          docker run --rm --privileged -v "$PWD":/work -w /work debian:trixie bash build-buxu-os.sh
       - uses: actions/upload-artifact@v4
         with:
           name: buxu-os-iso
