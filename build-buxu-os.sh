@@ -17,7 +17,10 @@ cd "$WORK"
 lb clean --purge 2>/dev/null || true
 
 lb config \
+  --mode debian \
   --distribution trixie \
+  --linux-flavours amd64 \
+  --linux-packages "linux-image" \
   --mirror-bootstrap "http://deb.debian.org/debian/" \
   --mirror-chroot "http://deb.debian.org/debian/" \
   --mirror-chroot-security "http://deb.debian.org/debian-security/" \
