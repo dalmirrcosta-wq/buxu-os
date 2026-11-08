@@ -18,6 +18,7 @@ lb clean --purge 2>/dev/null || true
 
 lb config \
   --mode debian \
+  --initsystem systemd \
   --distribution trixie \
   --linux-flavours amd64 \
   --linux-packages "linux-image" \
