@@ -1,4 +1,4 @@
-name: Build BUXU OS
+name: Build BUXU OS Debian
 on: workflow_dispatch
 jobs:
   build:
