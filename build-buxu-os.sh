@@ -26,7 +26,6 @@ lb config \
   --iso-application "BUXU OS" \
   --iso-publisher "BUXU OS" \
   --iso-volume "BUXU_OS" \
-  --image-name "buxu-os" \
   --bootappend-live "boot=live components quiet locales=pt_BR.UTF-8 keyboard-layouts=br timezone=America/Fortaleza hostname=buxu username=buxu"
 
 mkdir -p config/package-lists config/hooks/normal \
