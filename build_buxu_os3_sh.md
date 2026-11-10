@@ -1,90 +1,54 @@
 #!/usr/bin/env bash
-
-# BUXU OS - script de construção da ISO (base Debian 13 "trixie" + LXQt + Calamares)
-
-# Rode em um Debian/Ubuntu com internet:  sudo bash build-buxu-os2.sh
-
-# Precisa de \~15 GB livres. Demora de 30 a 90 minutos. A ISO sai em ./buxu-build/
-
+# BUXU OS - script de construção da ISO (base Debian 13 "trixie" + LXQt)
+# Rode em um Debian/Ubuntu com internet:  sudo bash build-buxu-os.sh
+# Precisa de ~15 GB livres. Demora de 30 a 90 minutos. A ISO sai em ./buxu-build/
 set -euo pipefail
 
-if \[ "\$EUID" -ne 0 \]; then
-echo "Rode com sudo: sudo bash \$0"; exit 1
+if [ "$EUID" -ne 0 ]; then
+  echo "Rode com sudo: sudo bash $0"; exit 1
 fi
 
 apt-get update
 apt-get install -y live-build debootstrap xorriso squashfs-tools debian-archive-keyring ca-certificates mtools dosfstools cpio
 
-WORK="\${PWD}/buxu-build"
-mkdir -p "\$WORK"
-cd "\$WORK"
+WORK="${PWD}/buxu-build"
+mkdir -p "$WORK"
+cd "$WORK"
 lb clean --purge 2>/dev/null || true
 
-lb config 
-
-\--mode debian 
-
-\--initsystem systemd 
-
-\--distribution trixie 
-
-\--linux-flavours amd64 
-
-\--linux-packages "linux-image-amd64" 
-
-\--mirror-bootstrap "http://deb.debian.org/debian/" 
-
-\--mirror-chroot "http://deb.debian.org/debian/" 
-
-\--mirror-binary "http://deb.debian.org/debian/" 
-
-\--security false 
-
-\--firmware-chroot false 
-
-\--firmware-binary false 
-
-\--architectures amd64 
-
-\--archive-areas "main contrib non-free non-free-firmware" 
-
-\--binary-images iso-hybrid 
-
-\--memtest none 
-
-\--iso-application "BUXU OS" 
-
-\--iso-publisher "BUXU OS" 
-
-\--iso-volume "BUXU_OS" 
-
-\--bootappend-live "boot=live components quiet splash loglevel=3 vt.global_cursor_default=0 locales=pt_BR.UTF-8 keyboard-layouts=br timezone=America/Fortaleza hostname=buxu username=buxu"
+lb config \
+  --mode debian \
+  --initsystem systemd \
+  --distribution trixie \
+  --linux-flavours amd64 \
+  --linux-packages "linux-image" \
+  --mirror-bootstrap "http://deb.debian.org/debian/" \
+  --mirror-chroot "http://deb.debian.org/debian/" \
+  --mirror-binary "http://deb.debian.org/debian/" \
+  --security false \
+  --firmware-chroot false \
+  --firmware-binary false \
+  --architectures amd64 \
+  --archive-areas "main contrib non-free non-free-firmware" \
+  --binary-images iso-hybrid \
+  --memtest none \
+  --iso-application "BUXU OS" \
+  --iso-publisher "BUXU OS" \
+  --iso-volume "BUXU_OS" \
+  --bootappend-live "boot=live components quiet splash loglevel=3 vt.global_cursor_default=0 locales=pt_BR.UTF-8 keyboard-layouts=br timezone=America/Fortaleza hostname=buxu username=buxu"
 
 mkdir -p config/archives
 echo "deb http://deb.debian.org/debian-security trixie-security main contrib non-free non-free-firmware" > config/archives/security.list.chroot
 cp config/archives/security.list.chroot config/archives/security.list.binary
 
-mkdir -p config/package-lists config/hooks/normal 
-
-config/includes.chroot/etc/X11/xorg.conf.d 
-
-config/includes.chroot/etc/lightdm/lightdm.conf.d 
-
-config/includes.chroot/etc/default
+mkdir -p config/package-lists config/hooks/normal \
+         config/includes.chroot/etc/X11/xorg.conf.d \
+         config/includes.chroot/etc/lightdm/lightdm.conf.d \
+         config/includes.chroot/etc/default
 
 # ---------- Pacotes ----------
-
 cat > config/package-lists/buxu.list.chroot <<'EOF'
-
-# Pacotes vitais do Debian Live (EVITA TRAVAMENTO NO BOOT)
-
-live-boot
-live-config
-live-config-systemd
-live-tools
-
 # Base gráfica leve
-
 xorg
 lightdm
 lightdm-gtk-greeter
@@ -100,14 +64,12 @@ papirus-icon-theme
 xdg-user-dirs
 
 # Loja de programas (apt + Flatpak, instala com um clique)
-
 gnome-software
 gnome-software-plugin-flatpak
 flatpak
 packagekit
 
 # Pendrives e discos (montagem automática), monitor de recursos
-
 udisks2
 gvfs
 gvfs-backends
@@ -115,17 +77,14 @@ qps
 htop
 
 # Relógio ajustado pela internet e memória comprimida (zram)
-
 chrony
 zram-tools
 
 # Rede (cabo e Wi-Fi)
-
 network-manager
 network-manager-gnome
 
 # Som
-
 pipewire
 pipewire-pulse
 pipewire-alsa
@@ -135,7 +94,6 @@ pavucontrol-qt
 firmware-sof-signed
 
 # Vídeo, teclado, touchpad, USB
-
 mesa-vulkan-drivers
 intel-media-va-driver
 xserver-xorg-input-libinput
@@ -144,7 +102,6 @@ xserver-xorg-video-fbdev
 xserver-xorg-video-vesa
 
 # Firmwares (Wi-Fi e outros)
-
 firmware-linux
 firmware-misc-nonfree
 firmware-iwlwifi
@@ -154,13 +111,11 @@ firmware-brcm80211
 intel-microcode
 
 # Idioma / sistema
-
 locales
 locales-all
 plymouth
 
 # Instalador (Calamares) e ferramentas para instalar no disco
-
 calamares
 calamares-settings-debian
 grub-common
@@ -184,14 +139,12 @@ extrepo
 EOF
 
 # ---------- Relógio: corrige a hora mesmo se estiver muito errada ----------
-
 mkdir -p config/includes.chroot/etc/chrony/conf.d
 cat > config/includes.chroot/etc/chrony/conf.d/buxu.conf <<'EOF'
 makestep 1 -1
 EOF
 
 # ---------- Memória comprimida (zram) ----------
-
 cat > config/includes.chroot/etc/default/zramswap <<'EOF'
 ALGO=zstd
 PERCENT=100
@@ -199,7 +152,6 @@ PRIORITY=100
 EOF
 
 # ---------- Touchpads I2C: carregar módulos comuns ----------
-
 mkdir -p config/includes.chroot/etc/modules-load.d
 cat > config/includes.chroot/etc/modules-load.d/buxu-input.conf <<'EOF'
 i2c_hid_acpi
@@ -207,28 +159,25 @@ hid_multitouch
 EOF
 
 # ---------- Idioma padrão: português do Brasil ----------
-
 cat > config/includes.chroot/etc/default/locale <<'EOF'
 LANG=pt_BR.UTF-8
 LANGUAGE=pt_BR:pt:en
 LC_MESSAGES=pt_BR.UTF-8
 EOF
 
-# ---------- Loja de programas sem pedir senha ----------
-
+# ---------- Loja de programas sem pedir senha (instalar/remover programas) ----------
 mkdir -p config/includes.chroot/etc/polkit-1/rules.d
 cat > config/includes.chroot/etc/polkit-1/rules.d/49-buxu-loja.rules <<'EOF'
 polkit.addRule(function(action, subject) {
-if ((action.id.indexOf("org.freedesktop.packagekit.") == 0 ||
-action.id.indexOf("org.freedesktop.Flatpak.") == 0) &&
-subject.local && subject.active) {
-return polkit.Result.YES;
-}
+    if ((action.id.indexOf("org.freedesktop.packagekit.") == 0 ||
+         action.id.indexOf("org.freedesktop.Flatpak.") == 0) &&
+        subject.local && subject.active) {
+        return polkit.Result.YES;
+    }
 });
 EOF
 
 # ---------- Teclado ABNT2 ----------
-
 cat > config/includes.chroot/etc/default/keyboard <<'EOF'
 XKBMODEL="pc105"
 XKBLAYOUT="br"
@@ -238,69 +187,84 @@ BACKSPACE="guess"
 EOF
 
 # ---------- Touchpad: toque para clicar, rolagem natural ----------
-
 cat > config/includes.chroot/etc/X11/xorg.conf.d/40-libinput-touchpad.conf <<'EOF'
 Section "InputClass"
-Identifier "BUXU touchpad"
-MatchIsTouchpad "on"
-Driver "libinput"
-Option "Tapping" "on"
-Option "NaturalScrolling" "true"
-Option "DisableWhileTyping" "on"
+    Identifier "BUXU touchpad"
+    MatchIsTouchpad "on"
+    Driver "libinput"
+    Option "Tapping" "on"
+    Option "NaturalScrolling" "true"
+    Option "DisableWhileTyping" "on"
 EndSection
 EOF
 
-# ---------- Modo live: login automático, atalho "Instalar BUXU OS" ----------
-
+# ---------- Modo live: login automático, atalho "Instalar BUXU OS" (não vai para o sistema instalado) ----------
 mkdir -p config/includes.chroot/usr/local/sbin config/includes.chroot/etc/systemd/system
 cat > config/includes.chroot/usr/local/sbin/buxu-live-setup <<'EOF'
 #!/bin/bash
-
 # Roda só no modo live, antes da tela de login
-
 U=buxu
 mkdir -p /etc/lightdm/lightdm.conf.d
-cat > /etc/lightdm/lightdm.conf.d/50-buxu.conf < /usr/share/applications/buxu-instalar.desktop </dev/null || true
+cat > /etc/lightdm/lightdm.conf.d/50-buxu.conf <<EOC
+[Seat:*]
+autologin-user=$U
+autologin-user-timeout=0
+autologin-session=lxqt
+EOC
+cat > /usr/share/applications/buxu-instalar.desktop <<EOC
+[Desktop Entry]
+Type=Application
+Name=Instalar BUXU OS
+Name[pt_BR]=Instalar BUXU OS
+Comment=Instalar o BUXU OS no disco do computador
+Exec=sudo -E calamares
+Icon=system-software-install
+Terminal=false
+Categories=System;
+EOC
+H=/home/$U
+if [ -d "$H" ]; then
+    mkdir -p "$H/Desktop"
+    cp /usr/share/applications/buxu-instalar.desktop "$H/Desktop/"
+    chmod +x "$H/Desktop/buxu-instalar.desktop"
+    chown -R $U:$U "$H/Desktop" 2>/dev/null || true
 fi
 exit 0
 EOF
 chmod +x config/includes.chroot/usr/local/sbin/buxu-live-setup
 cat > config/includes.chroot/etc/systemd/system/buxu-live-setup.service <<'EOF'
-\[Unit\]
+[Unit]
 Description=BUXU OS - ajustes do modo live
 ConditionKernelCommandLine=boot=live
 After=live-config.service
 Before=display-manager.service lightdm.service
 
-\[Service\]
+[Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/buxu-live-setup
 
-\[Install\]
+[Install]
 WantedBy=multi-user.target
 EOF
 
-# ---------- Sistema instalado: GRUB discreto e tela de boot ----------
-
+# ---------- Sistema instalado: GRUB discreto e tela de boot do porco ----------
 cat > config/includes.chroot/etc/default/grub <<'EOF'
 GRUB_DEFAULT=0
 GRUB_TIMEOUT_STYLE=hidden
-GRUB_TIMEOUT=1
+GRUB_TIMEOUT=0
 GRUB_DISTRIBUTOR="BUXU OS"
 GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3"
 GRUB_CMDLINE_LINUX=""
 EOF
 
-# ---------- Tela de atraso para o plymouth ----------
-
+# ---------- Tela do porco fica visível por mais tempo (8 s no live, 3 s instalado) ----------
 mkdir -p config/includes.chroot/etc/systemd/system/plymouth-quit.service.d
 cat > config/includes.chroot/etc/systemd/system/plymouth-quit.service.d/buxu-atraso.conf <<'EOF'
-\[Service\]
-ExecStartPre=/bin/sh -c 'if grep -q boot=live /proc/cmdline; then sleep 4; else sleep 2; fi'
+[Service]
+ExecStartPre=/bin/sh -c 'if grep -q boot=live /proc/cmdline; then sleep 8; else sleep 3; fi'
 EOF
 
-# ---------- Imagens (porco) ----------
-
+# ---------- Imagens do porco (ícone do menu e tela de boot) ----------
 mkdir -p config/includes.chroot/usr/share/icons/buxu
 mkdir -p config/includes.chroot/usr/share/plymouth/themes/buxu
 
@@ -364,7 +328,44 @@ wNFaSdrIU9H3ZH9UPPNfu2MQNSqCrjXo39UqF+ONrpXaTS9dHu3Lm9u2WSK/4RY5zsuJMQzmpV/r
 a4dhjcD8/S+oBD4ST4Y1Bdc6OybKR7pn9uH4+/Ju0rbamN+bSCwmxxdi40uELqWXdcGXDD38OB30
 gRUAiPpiQ8Vu725J+MI6fGIK/bKK3KvoERWYOBkfgPa6NICm6xMDCM3XRwfOpG8qHyifg3BMzMCJ
 nFSQPtmOazB0KX1bl32AYmqcq1IIZsjYJI2Re19h0T5BUBsgHNUIyBMl4gOQcdh84ChZW+oB/l7/
-+xAHA295/RAB
++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
 B64
 
 cp config/includes.chroot/usr/share/icons/buxu/porco.png config/includes.chroot/usr/share/plymouth/themes/buxu/porco.png
@@ -380,15 +381,14 @@ aAT9H23etmiLtJoTPNO9y8G0YXMcrUDUYCSbP88mSJJN1GDRCjRsjvcuB1Nlf2zd0XByUy0PTWRW
 xt0iarF+cdRCyrhbmMjsploedkfDyXpy/zPy358I2lNRXEw6AAAAAElFTkSuQmCC
 B64
 
-# ---------- Tema Plymouth ----------
-
+# ---------- Tela de boot: porco + bolinhas girando (estilo Windows 10) ----------
 cat > config/includes.chroot/usr/share/plymouth/themes/buxu/buxu.plymouth <<'EOF'
-\[Plymouth Theme\]
+[Plymouth Theme]
 Name=BUXU OS
 Description=Tela de boot do BUXU OS
 ModuleName=script
 
-\[script\]
+[script]
 ImageDir=/usr/share/plymouth/themes/buxu
 ScriptFile=/usr/share/plymouth/themes/buxu/buxu.script
 EOF
@@ -409,38 +409,37 @@ dot.cx = Window.GetX() + Window.GetWidth() / 2;
 dot.cy = pig.y + pig.image.GetHeight() + 70;
 dot.radius = 20;
 for (i = 0; i < dot.count; i++) {
-dot.sprite\[i\] = Sprite(dot.image);
-dot.sprite\[i\].SetZ(20);
-dot.sprite\[i\].SetOpacity(0);
+    dot.sprite[i] = Sprite(dot.image);
+    dot.sprite[i].SetZ(20);
+    dot.sprite[i].SetOpacity(0);
 }
 global.frame = 0;
 
 fun refresh_callback() {
-global.frame++;
-t = global.frame / 50.0;
-for (i = 0; i < dot.count; i++) {
-p = t \* 0.45 - i \* 0.055 + 20;
-p = p - Math.Int(p);
-e = p \* p \* (3 - 2 \* p);
-angle = e \* 2 \* Math.Pi - Math.Pi / 2;
-x = dot.cx + dot.radius \* Math.Cos(angle) - dot.image.GetWidth() / 2;
-y = dot.cy + dot.radius \* Math.Sin(angle) - dot.image.GetHeight() / 2;
-dot.sprite\[i\].SetPosition(x, y, 20);
-dot.sprite\[i\].SetOpacity(1);
-}
+    global.frame++;
+    t = global.frame / 50.0;
+    for (i = 0; i < dot.count; i++) {
+        p = t * 0.45 - i * 0.055 + 20;
+        p = p - Math.Int(p);
+        e = p * p * (3 - 2 * p);
+        angle = e * 2 * Math.Pi - Math.Pi / 2;
+        x = dot.cx + dot.radius * Math.Cos(angle) - dot.image.GetWidth() / 2;
+        y = dot.cy + dot.radius * Math.Sin(angle) - dot.image.GetHeight() / 2;
+        dot.sprite[i].SetPosition(x, y, 20);
+        dot.sprite[i].SetOpacity(1);
+    }
 }
 Plymouth.SetRefreshFunction(refresh_callback);
 EOF
 
-# ---------- Painel LXQt ----------
-
+# ---------- Barra de tarefas ----------
 mkdir -p config/includes.chroot/etc/xdg/lxqt
 mkdir -p config/includes.chroot/etc/skel/.config/lxqt
 cat > config/includes.chroot/etc/xdg/lxqt/panel.conf <<'EOF'
-\[General\]
-**userfile**=true
+[General]
+__userfile__=true
 
-\[panel1\]
+[panel1]
 alignment=-1
 desktop=0
 hidable=false
@@ -451,62 +450,61 @@ reserve-space=true
 width=100
 width-percent=true
 
-\[mainmenu\]
+[mainmenu]
 alignment=Left
 type=mainmenu
 ownIcon=true
 icon=/usr/share/icons/buxu/porco.png
 showText=false
 
-\[quicklaunch\]
+[quicklaunch]
 alignment=Left
-apps\\1\\desktop=/usr/share/applications/pcmanfm-qt.desktop
-apps\\2\\desktop=/usr/share/applications/qterminal.desktop
-apps\\3\\desktop=/usr/share/applications/featherpad.desktop
-apps\\size=3
+apps\1\desktop=/usr/share/applications/pcmanfm-qt.desktop
+apps\2\desktop=/usr/share/applications/qterminal.desktop
+apps\3\desktop=/usr/share/applications/featherpad.desktop
+apps\size=3
 type=quicklaunch
 
-\[taskbar\]
+[taskbar]
 alignment=Left
 type=taskbar
 
-\[tray\]
+[tray]
 alignment=Right
 type=tray
 
-\[statusnotifier\]
+[statusnotifier]
 alignment=Right
 type=statusnotifier
 
-\[kbindicator\]
+[kbindicator]
 alignment=Right
 type=kbindicator
 
-\[volume\]
+[volume]
 alignment=Right
 type=volume
 
-\[worldclock\]
+[worldclock]
 alignment=Right
 type=worldclock
 
-\[showdesktop\]
+[showdesktop]
 alignment=Right
 type=showdesktop
 EOF
 cp config/includes.chroot/etc/xdg/lxqt/panel.conf config/includes.chroot/etc/skel/.config/lxqt/panel.conf
 
-# ---------- Swapfile no sistema instalado ----------
-
+# ---------- Swap de 8 GB (só no sistema instalado) ----------
 mkdir -p config/includes.chroot/usr/local/sbin config/includes.chroot/etc/systemd/system
 cat > config/includes.chroot/usr/local/sbin/buxu-swapfile <<'EOF'
 #!/bin/bash
 set -e
-\[ -e /swapfile \] && exit 0
+[ -e /swapfile ] && exit 0
 livre=$(df --output=avail -BG / | tail -n1 | tr -dc '0-9')
 tam=8
-[ "${livre:-0}" -lt 20 \] && tam=4
-fallocate -l "${tam}G" /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=$((tam\*1024))
+[ "${livre:-0}" -lt 20 ] && tam=4
+fallocate -l "${tam}G" /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=$((tam*1024))
 chmod 600 /swapfile
 mkswap /swapfile
 grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw,pri=10 0 0' >> /etc/fstab
@@ -514,120 +512,107 @@ swapon -p 10 /swapfile || true
 EOF
 chmod +x config/includes.chroot/usr/local/sbin/buxu-swapfile
 cat > config/includes.chroot/etc/systemd/system/buxu-swapfile.service <<'EOF'
-\[Unit\]
-Description=BUXU OS - cria o swap no sistema instalado
+[Unit]
+Description=BUXU OS - cria o swap de 8 GB no sistema instalado
 ConditionKernelCommandLine=!boot=live
 ConditionPathExists=!/swapfile
 After=local-fs.target
 
-\[Service\]
+[Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/buxu-swapfile
 
-\[Install\]
+[Install]
 WantedBy=multi-user.target
 EOF
 
-# ---------- Hook Bootloader ----------
-
+# ---------- Boot: entrar direto no modo live sem mostrar a tela amarela ----------
 cat > config/hooks/normal/9000-buxu-boot.hook.binary <<'EOF'
 #!/bin/sh
+# Força boot automático instantâneo no Syslinux e no GRUB
 B=binary
-\[ -d "\$B" \] || B=.
-for f in $(find "$B" -path '*isolinux*' -name '*.cfg' 2>/dev/null); do
-sed -i -E 's/^(\[\[:space:\]\]*)timeout\[\[:space:\]\]+\[0-9\]+/\\1timeout 1/I' "\$f" || true
-done
-for f in $(find "$B" -path '*grub*' -name '*.cfg' 2>/dev/null); do
-sed -i -E 's/^(\[\[:space:\]\]*)set\[\[:space:\]\]+timeout=.\*/\\1set timeout=0/' "\$f" || true
+[ -d "$B" ] || B=.
+for f in $(find "$B" -name '*.cfg' -o -name '*.cfg.in' 2>/dev/null); do
+    sed -i -E 's/^([[:space:]]*)timeout[[:space:]]+[0-9]+/\1timeout 1/I' "$f" || true
+    sed -i -E 's/^([[:space:]]*)set[[:space:]]+timeout=.*/\1set timeout=0/' "$f" || true
+    sed -i -E 's/^([[:space:]]*)set[[:space:]]+timeout_style=.*/\1set timeout_style=hidden/' "$f" || true
 done
 exit 0
 EOF
 chmod +x config/hooks/normal/9000-buxu-boot.hook.binary
 
-# ---------- Hook Chroot ----------
-
+# ---------- Hook: personalizações feitas dentro do sistema ----------
 cat > config/hooks/normal/0100-buxu.hook.chroot <<'EOF'
 #!/bin/bash
 set -e
 
-# Idioma
-
-sed -i 's/^# \*pt_BR.UTF-8 UTF-8/pt_BR.UTF-8 UTF-8/' /etc/locale.gen
+# Português do Brasil
+sed -i 's/^# *pt_BR.UTF-8 UTF-8/pt_BR.UTF-8 UTF-8/' /etc/locale.gen
 grep -q '^pt_BR.UTF-8' /etc/locale.gen || echo 'pt_BR.UTF-8 UTF-8' >> /etc/locale.gen
 locale-gen
 update-locale LANG=pt_BR.UTF-8 LANGUAGE=pt_BR:pt:en
 ln -sf /usr/share/zoneinfo/America/Fortaleza /etc/localtime
 
 # Identidade BUXU OS
-
-cat > /etc/os-release < /etc/issue
+cat > /etc/os-release <<OSR
+PRETTY_NAME="BUXU OS"
+NAME="BUXU OS"
+VERSION="1.0"
+ID=buxu
+ID_LIKE=debian
+HOME_URL="https://example.com/buxu"
+OSR
+echo "BUXU OS 1.0 \n \l" > /etc/issue
 
 # LibreWolf
-
 extrepo enable librewolf || true
 apt-get update || true
 apt-get install -y librewolf || echo "AVISO: LibreWolf não instalou"
 
-# Flathub
-
+# Flathub na loja
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
 
-# BUXU Store
-
-if \[ -f /usr/share/applications/org.gnome.Software.desktop \]; then
-sed -i -E '/^Name(
-
-$$
--[^]]*
-$$
-
-)?=/d' /usr/share/applications/org.gnome.Software.desktop
-sed -i '0,/^\[Desktop Entry\]/s//\[Desktop Entry\]\\nName=BUXU Store\\nName\[pt_BR\]=BUXU Store/' /usr/share/applications/org.gnome.Software.desktop
+# Loja de programas com o nome BUXU Store
+if [ -f /usr/share/applications/org.gnome.Software.desktop ]; then
+    sed -i -E '/^Name(\[[^]]*\])?=/d' /usr/share/applications/org.gnome.Software.desktop
+    sed -i '0,/^\[Desktop Entry\]/s//[Desktop Entry]\nName=BUXU Store\nName[pt_BR]=BUXU Store/' /usr/share/applications/org.gnome.Software.desktop
 fi
 
-# Ícone do menu
-
-if \[ -f /usr/share/icons/buxu/porco.png \]; then
-PIG_B64=\$(base64 -w0 /usr/share/icons/buxu/porco.png)
-find /usr/share/icons /usr/share/pixmaps -type f $-name 'start-here-lxqt.*' -o -name 'start-here.*'$ 2>/dev/null | while read -r f; do
-case "\$f" in
-\*.svg) printf '
-
-```
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"></svg>
-```
-
-' "$PIG_B64" > "$f" ;;
-*.png) cp /usr/share/icons/buxu/porco.png "\$f" ;;
-esac
-done
-for d in /usr/share/icons/*/; do gtk-update-icon-cache -f "\$d" >/dev/null 2>&1 || true; done
+# Ícone do porco no lugar do beija-flor (botão do menu)
+if [ -f /usr/share/icons/buxu/porco.png ]; then
+    PIG_B64=$(base64 -w0 /usr/share/icons/buxu/porco.png)
+    find /usr/share/icons /usr/share/pixmaps -type f \( -name 'start-here-lxqt.*' -o -name 'start-here.*' \) 2>/dev/null | while read -r f; do
+        case "$f" in
+            *.svg) printf '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="256" height="256" viewBox="0 0 256 256"><image width="256" height="256" xlink:href="data:image/png;base64,%s"/></svg>' "$PIG_B64" > "$f" ;;
+            *.png) cp /usr/share/icons/buxu/porco.png "$f" ;;
+        esac
+    done
+    for d in /usr/share/icons/*/; do gtk-update-icon-cache -f "$d" >/dev/null 2>&1 || true; done
 fi
 
-# Calamares
-
-if \[ -d /etc/calamares \]; then
-for f in \$(find /etc/calamares /usr/share/calamares -name 'branding.desc' 2>/dev/null); do
-sed -i -E '/^(productName|shortProductName|versionedName|shortVersionedName|bootloaderEntryName):/ s/Debian GNU/Linux|Debian/BUXU OS/g' "\$f" || true
-done
-for f in \$(find /etc/calamares /usr/share/calamares -iname '*logo*.png' 2>/dev/null); do
-cp /usr/share/icons/buxu/porco.png "\$f" || true
-done
-UC=/etc/calamares/modules/users.conf
-if \[ -f "\$UC" \]; then
-for k in doAutologin allowWeakPasswords allowWeakPasswordsDefault; do
-if grep -qE "^#?\[\[:space:\]\]$k:" "$*UC"; then
-sed -i -E "s/^#?\[\[:space:\]\]*$k:.*/$k: true/" "\$UC"
-else
-echo "$k: true" >> "$UC"
-fi
-done
-fi
-RU=/etc/calamares/modules/removeuser.conf
-\[ -f "$RU" ] && sed -i -E 's/^username:.*/username: buxu/' "$RU"
-for f in /usr/share/applications/*calamares*.desktop /usr/share/applications/*install-debian*.desktop; do
-\[ -f "$f" ] && sed -i '0,/^[Desktop Entry]/s//[Desktop Entry]\nNoDisplay=true/' "$f"
-done
+# Instalador Calamares com a marca BUXU OS
+if [ -d /etc/calamares ]; then
+    for f in $(find /etc/calamares /usr/share/calamares -name 'branding.desc' 2>/dev/null); do
+        sed -i -E '/^(productName|shortProductName|versionedName|shortVersionedName|bootloaderEntryName):/ s/Debian GNU\/Linux|Debian/BUXU OS/g' "$f" || true
+    done
+    for f in $(find /etc/calamares /usr/share/calamares -iname '*logo*.png' 2>/dev/null); do
+        cp /usr/share/icons/buxu/porco.png "$f" || true
+    done
+    UC=/etc/calamares/modules/users.conf
+    if [ -f "$UC" ]; then
+        for k in doAutologin allowWeakPasswords allowWeakPasswordsDefault; do
+            if grep -qE "^#?[[:space:]]*$k:" "$UC"; then
+                sed -i -E "s/^#?[[:space:]]*$k:.*/$k: true/" "$UC"
+            else
+                echo "$k: true" >> "$UC"
+            fi
+        done
+    fi
+    RU=/etc/calamares/modules/removeuser.conf
+    [ -f "$RU" ] && sed -i -E 's/^username:.*/username: buxu/' "$RU"
+    for f in /usr/share/applications/*calamares*.desktop /usr/share/applications/*install-debian*.desktop; do
+        [ -f "$f" ] && sed -i '0,/^\[Desktop Entry\]/s//[Desktop Entry]\nNoDisplay=true/' "$f"
+    done
 fi
 
 systemctl enable buxu-live-setup.service || true
@@ -637,32 +622,29 @@ systemctl enable chrony || true
 systemctl enable zramswap || true
 
 apt-get clean
-rm -rf /var/lib/apt/lists/\*
+rm -rf /var/lib/apt/lists/*
 EOF
 chmod +x config/hooks/normal/0100-buxu.hook.chroot
 
-# ---------- Configurações de Bootloader ----------
-
+# ---------- Configurações de Bootloader (boot rápido e oculto) ----------
 mkdir -p config/bootloaders
-if \[ -d /usr/share/live/build/bootloaders \]; then
-cp -r /usr/share/live/build/bootloaders/. config/bootloaders/
+if [ -d /usr/share/live/build/bootloaders ]; then
+  cp -r /usr/share/live/build/bootloaders/. config/bootloaders/
 fi
-find config/bootloaders -type f $-name '*.cfg' -o -name '*.cfg.in'$ | while read -r f; do
-sed -i -E 's/^(\[\[:space:\]\]*)timeout\[\[:space:\]\]+\[0-9\]+/\\1timeout 1/I' "\$f"
-done
-find config/bootloaders -type f | while read -r f; do
-grep -Iq . "\$f" 2>/dev/null || continue
-sed -i -E 's/^(\[\[:space:\]\]*)set\[\[:space:\]\]+timeout=.\*/\\1set timeout=0/' "\$f"
+find config/bootloaders -type f \( -name '*.cfg' -o -name '*.cfg.in' \) | while read -r f; do
+  sed -i -E 's/^([[:space:]]*)timeout[[:space:]]+[0-9]+/\1timeout 1/I' "$f" || true
+  sed -i -E 's/^([[:space:]]*)set[[:space:]]+timeout=.*/\1set timeout=0/' "$f" || true
+  sed -i -E 's/^([[:space:]]*)set[[:space:]]+timeout_style=.*/\1set timeout_style=hidden/' "$f" || true
 done
 
-# ---------- Compilar ----------
-
+# ---------- Construir ----------
 lb build 2>&1 | tee build.log
 
-ISO="\$(ls -1 \*.iso 2>/dev/null | head -n1 || true)"
-if \[ -n "\$ISO" \]; then
-echo
-echo "Sucesso! ISO gerada em: $WORK/$ISO"
+ISO="$(ls -1 *.iso 2>/dev/null | head -n1 || true)"
+if [ -n "$ISO" ]; then
+  echo
+  echo "Pronto! ISO gerada: $WORK/$ISO"
+  echo "Teste no VirtualBox/QEMU ou grave no pendrive com Ventoy / balenaEtcher."
 else
-echo "A compilação falhou. Verifique o log em \$WORK/build.log"; exit 1
+  echo "A ISO não foi gerada. Veja $WORK/build.log"; exit 1
 fi
