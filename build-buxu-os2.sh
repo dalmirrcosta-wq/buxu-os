@@ -126,7 +126,6 @@ os-prober
 dosfstools
 e2fsprogs
 ntfs-3g
-cryptsetup
 parted
 console-setup
 keyboard-configuration
@@ -849,9 +848,9 @@ fi
 
 # Pacotes completos para o instalador funcionar (sistemas de arquivos, LVM, criptografia, EFI)
 apt-get update || true
-for pkg in btrfs-progs xfsprogs f2fs-tools exfatprogs jfsutils lvm2 mdadm gdisk rsync squashfs-tools \
-           e2fsprogs dosfstools ntfs-3g cryptsetup parted efibootmgr os-prober \
-           grub-common grub-pc-bin grub-efi-amd64-bin initramfs-tools polkitd pkexec; do
+for pkg in btrfs-progs xfsprogs f2fs-tools exfatprogs gdisk rsync squashfs-tools \
+           e2fsprogs dosfstools ntfs-3g parted efibootmgr os-prober \
+           grub-common grub-pc-bin grub-efi-amd64-bin; do
     apt-get install -y "$pkg" || echo "AVISO: pacote opcional $pkg nao instalou"
 done
 # Conferência: o instalador precisa existir
@@ -904,6 +903,19 @@ systemctl enable buxu-swapfile.service || true
 # Relógio pela internet e zram ligados na inicialização
 systemctl enable chrony || true
 systemctl enable zramswap || true
+
+# ---------- Conferência: o sistema precisa conseguir iniciar ----------
+echo "== Conferindo o boot do sistema =="
+[ -e /sbin/init ] || { echo "ERRO: /sbin/init nao existe"; exit 1; }
+INIT_REAL=$(readlink -f /sbin/init)
+echo "init: $INIT_REAL"
+if ldd "$INIT_REAL" 2>&1 | grep -q "not found"; then
+    echo "ERRO: faltam bibliotecas para o init:"; ldd "$INIT_REAL"; exit 1
+fi
+for K in /boot/vmlinuz-*; do echo "kernel: $K"; done
+ls /boot/initrd.img-* 2>/dev/null || echo "AVISO: sem initrd em /boot ainda"
+dpkg -l systemd systemd-sysv live-boot live-config 2>/dev/null | grep -E '^ii' || { echo "ERRO: pacotes de boot ausentes"; dpkg -l | grep -E 'systemd|live-' ; exit 1; }
+echo "== Boot conferido =="
 
 # Limpeza
 apt-get clean
