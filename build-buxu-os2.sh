@@ -100,6 +100,7 @@ plymouth
 # Instalador e Suporte a Discos
 calamares
 calamares-settings-debian
+pkexec
 grub-common
 grub-pc-bin
 grub-efi-amd64-bin
@@ -135,38 +136,44 @@ XKBOPTIONS=""
 BACKSPACE="guess"
 EOF
 
-# ---------- Sudoers para o Calamares (sem senha no modo Live) ----------
-mkdir -p config/includes.chroot/etc/sudoers.d
-cat > config/includes.chroot/etc/sudoers.d/buxu-calamares <<'EOF'
-buxu ALL=(ALL) NOPASSWD: /usr/bin/calamares
-EOF
-chmod 0440 config/includes.chroot/etc/sudoers.d/buxu-calamares
-
-# ---------- Atalho "Instalar BUXU OS" no esqueleto e no Desktop ----------
+# ---------- Atalho do instalador BUXU OS ----------
+# O pacote calamares-settings-debian fornece as configurações e módulos
+# necessários para o Calamares. pkexec solicita a autorização gráfica.
 cat > config/includes.chroot/etc/skel/Desktop/buxu-instalar.desktop <<'EOF'
 [Desktop Entry]
+Version=1.0
 Type=Application
 Name=Instalar BUXU OS
 Name[pt_BR]=Instalar BUXU OS
 Comment=Instalar o BUXU OS no disco do computador
-Exec=sudo /usr/bin/calamares
+Exec=pkexec calamares
+TryExec=calamares
 Icon=system-software-install
 Terminal=false
 Categories=System;
+StartupNotify=true
 EOF
-chmod +x config/includes.chroot/etc/skel/Desktop/buxu-instalar.desktop
 
-# ---------- Hook de Execução no Boot Live (Garante o atalho na área de trabalho) ----------
+chmod 0755 config/includes.chroot/etc/skel/Desktop/buxu-instalar.desktop
+
+# ---------- Hook para garantir o atalho na sessão Live ----------
 mkdir -p config/includes.chroot/lib/live/config
 cat > config/includes.chroot/lib/live/config/9999-buxu-desktop <<'EOF'
 #!/bin/sh
-# Força a cópia do atalho para o usuário live no momento do login
-mkdir -p /home/buxu/Desktop
-cp /etc/skel/Desktop/buxu-instalar.desktop /home/buxu/Desktop/
-chmod +x /home/buxu/Desktop/buxu-instalar.desktop
-chown -R buxu:buxu /home/buxu/Desktop
+set -eu
+
+LIVE_USER="buxu"
+LIVE_HOME="/home/${LIVE_USER}"
+SOURCE="/etc/skel/Desktop/buxu-instalar.desktop"
+
+if id "${LIVE_USER}" >/dev/null 2>&1 && [ -f "${SOURCE}" ]; then
+    install -d -o "${LIVE_USER}" -g "${LIVE_USER}" "${LIVE_HOME}/Desktop"
+    install -o "${LIVE_USER}" -g "${LIVE_USER}" -m 0755 \
+        "${SOURCE}" "${LIVE_HOME}/Desktop/buxu-instalar.desktop"
+fi
 EOF
-chmod +x config/includes.chroot/lib/live/config/9999-buxu-desktop
+
+chmod 0755 config/includes.chroot/lib/live/config/9999-buxu-desktop
 
 # ---------- Atraso no Plymouth (8s no Live) ----------
 mkdir -p config/includes.chroot/etc/systemd/system/plymouth-quit.service.d
